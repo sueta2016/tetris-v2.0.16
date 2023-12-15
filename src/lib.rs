@@ -49,11 +49,9 @@ pub fn main_handler(
     while field.can_move() {
         field.move_figure();
     }
+
     // write in file
     let final_state = field.to_string();
 
-    match file_system.write_file("out.txt", final_state.as_str()) {
-        Ok(_) => output.write("File created"),
-        Err(_) => output.write("Couldn't save file"),
-    }
+    output.write(&final_state);
 }

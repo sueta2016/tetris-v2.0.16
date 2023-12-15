@@ -106,67 +106,12 @@ pp.
             .times(1)
             .returning(move |_| Ok(input.clone()));
 
-        mock_file_system
-            .expect_write_file()
-            .times(1)
-            .with(eq("out.txt"), eq(output_str))
-            .returning(|_, _| Ok(()));
-
         mock_output
             .expect_write()
             .times(1)
-            .with(eq("File created"))
+            .with(eq(output_str))
             .returning(|_| ());
 
         main_handler(config, &mut mock_file_system, &mut mock_output);
-    }
-
-    #[test]
-    fn should_display_error_message_on_file_not_saved() {
-        let output_str = "...
-.p.
-pp.
-###
-";
-        let input = r"3 4
-            .p.
-            pp.
-            ...
-            ###"
-        .to_string();
-
-        let config = Config {
-            show_steps: false,
-            file_path: "messi.txt".to_string(),
-        };
-
-        let mut mock_file_system = MockFileSystemOperations::new();
-
-        mock_file_system.expect_exists().times(1).return_const(true);
-        mock_file_system
-            .expect_read_file()
-            .times(1)
-            .returning(move |_| Ok(input.clone()));
-
-        mock_file_system
-            .expect_write_file()
-            .times(1)
-            .with(eq("out.txt"), eq(output_str))
-            .returning(|_, _| {
-                Err(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    "Couldn't save file",
-                ))
-            });
-
-        let mut mock_output = MockOutput::new();
-
-        mock_output
-            .expect_write()
-            .times(1)
-            .with(eq("Couldn't save file"))
-            .returning(|_| ());
-
-        main_handler(config, &mut mock_file_system, &mut mock_output)
     }
 }
