@@ -6,7 +6,7 @@ Follow these simple steps to set up the environment and run tests:
 
 1. **Clone the Repository:**
    ```bash
-   git clone https://github.com/sueta2016/tetris.git
+   git clone https://github.com/sueta2016/tetris-v2.0.16.git
    ```
 
 2. **Navigate to Project Directory:**
