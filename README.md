@@ -11,7 +11,7 @@ Follow these simple steps to set up the environment and run tests:
 
 2. **Navigate to Project Directory:**
    ```bash
-   cd tetris
+   cd tetris-v2.0.16
    ```
 
 3. **Install Dependencies:**
