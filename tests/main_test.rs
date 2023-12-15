@@ -1,138 +1,124 @@
-use tetris::{file_system::FileSystemOperations, main_handler};
-
-struct MockFileSystem {
-    is_exist: bool,
-    file_content_result: Result<String, std::io::Error>,
-    expected_output: &'static str,
-    write_file_result: Result<(), std::io::Error>,
-}
-
-impl FileSystemOperations for MockFileSystem {
-    fn exists(&self, _file_path: &str) -> bool {
-        self.is_exist
-    }
-    fn read_file(&self, _file_path: &str) -> Result<String, std::io::Error> {
-        match self.file_content_result {
-            Err(_) => Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "Couldn't read file",
-            )),
-            Ok(ref value) => Ok(value.clone()),
-        }
-    }
-    fn write_file(&mut self, _file_path: &str, content: &str) -> Result<(), std::io::Error> {
-        assert_eq!(content, self.expected_output);
-
-        match self.write_file_result {
-            Err(_) => Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "Couldn't save file",
-            )),
-            Ok(_) => Ok(()),
-        }
-    }
-}
-
-impl Default for MockFileSystem {
-    fn default() -> Self {
-        MockFileSystem {
-            is_exist: false,
-            file_content_result: Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "Couldn't read file",
-            )),
-            expected_output: "",
-            write_file_result: Ok(()),
-        }
-    }
-}
+use tetris::main_handler;
 
 #[cfg(test)]
 mod tests {
-    use tetris::output::MockOutput;
+    use mockall::predicate::eq;
+    use tetris::{file_system::MockFileSystemOperations, output::MockOutput, Config};
 
     use super::*;
 
     #[test]
     fn should_out_usage_info_if_filepath_absent() {
-        let args: Vec<String> = vec![];
+        let config: Config = Config {
+            show_steps: false,
+            file_path: "".to_string(),
+        };
 
-        main_handler(
-            args,
-            &mut MockFileSystem::default(),
-            &mut MockOutput {
-                expected_output: "Usage: ./main <filename>",
-            },
-        );
+        let mut mock_file_system = MockFileSystemOperations::new();
+        let mut mock_output = MockOutput::new();
+
+        mock_output
+            .expect_write()
+            .times(1)
+            .with(eq("Usage: ./main <filename>"))
+            .returning(|_| ());
+
+        main_handler(config, &mut mock_file_system, &mut mock_output);
     }
 
     #[test]
     fn should_output_error_if_file_not_exists() {
-        let args: Vec<String> = vec!["messi.txt".to_string()];
-
-        let mut mock_file_system = MockFileSystem {
-            is_exist: false,
-            ..Default::default()
+        let config: Config = Config {
+            show_steps: false,
+            file_path: "messi.txt".to_string(),
         };
 
-        let mut mock_output = MockOutput {
-            expected_output: "File not exists",
-        };
+        let mut mock_file_system = MockFileSystemOperations::new();
+        let mut mock_output = MockOutput::new();
 
-        main_handler(args, &mut mock_file_system, &mut mock_output)
+        mock_file_system
+            .expect_exists()
+            .times(1)
+            .return_const(false);
+
+        mock_output
+            .expect_write()
+            .times(1)
+            .with(eq("File not exists"))
+            .returning(|_| ());
+
+        main_handler(config, &mut mock_file_system, &mut mock_output)
     }
 
     #[test]
     fn should_output_error_if_could_not_read_file() {
-        let args: Vec<String> = vec!["messi.txt".to_string()];
+        let config: Config = Config {
+            show_steps: false,
+            file_path: "messi.txt".to_string(),
+        };
 
-        let mut mock_file_system = MockFileSystem {
-            file_content_result: Err(std::io::Error::new(
+        let mut mock_file_system = MockFileSystemOperations::new();
+        let mut mock_output = MockOutput::new();
+
+        mock_file_system.expect_exists().times(1).return_const(true);
+
+        mock_file_system.expect_read_file().times(1).returning(|_| {
+            Err(std::io::Error::new(
                 std::io::ErrorKind::Other,
                 "Couldn't read file",
-            )),
-            is_exist: true,
-            ..Default::default()
-        };
+            ))
+        });
 
-        let mut mock_output = MockOutput {
-            expected_output: "Couldn't read file",
-        };
+        mock_output
+            .expect_write()
+            .with(eq("Couldn't read file"))
+            .returning(|_| ());
 
-        main_handler(args, &mut mock_file_system, &mut mock_output)
+        main_handler(config, &mut mock_file_system, &mut mock_output)
     }
 
     #[test]
     fn should_correctly_play_game() {
         let input = r"3 4
-        .p.
-        pp.
-        ...
-        ###"
+            .p.
+            pp.
+            ...
+            ###"
         .to_string();
 
-        let output_str = "...
+        let output_str = r"...
 .p.
 pp.
 ###
 ";
 
-        let args: Vec<String> = vec!["messi.txt".to_string()];
-
-        let mut mock_file_system = MockFileSystem {
-            file_content_result: Ok(input),
-            is_exist: true,
-            expected_output: output_str,
-            ..Default::default()
+        let config = Config {
+            show_steps: false,
+            file_path: "messi.txt".to_string(),
         };
 
-        main_handler(
-            args,
-            &mut mock_file_system,
-            &mut MockOutput {
-                expected_output: "File created",
-            },
-        );
+        let mut mock_file_system = MockFileSystemOperations::new();
+        let mut mock_output = MockOutput::new();
+
+        mock_file_system.expect_exists().times(1).return_const(true);
+        mock_file_system
+            .expect_read_file()
+            .times(1)
+            .returning(move |_| Ok(input.clone()));
+
+        mock_file_system
+            .expect_write_file()
+            .times(1)
+            .with(eq("out.txt"), eq(output_str))
+            .returning(|_, _| Ok(()));
+
+        mock_output
+            .expect_write()
+            .times(1)
+            .with(eq("File created"))
+            .returning(|_| ());
+
+        main_handler(config, &mut mock_file_system, &mut mock_output);
     }
 
     #[test]
@@ -143,28 +129,44 @@ pp.
 ###
 ";
         let input = r"3 4
-        .p.
-        pp.
-        ...
-        ###"
+            .p.
+            pp.
+            ...
+            ###"
         .to_string();
 
-        let args = vec!["messi.txt".to_string()];
-        let mut mock_file_system = MockFileSystem {
-            file_content_result: Ok(input),
-            is_exist: true,
-            expected_output: output_str,
-            write_file_result: Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "Couldn't save file",
-            )),
-            ..Default::default()
+        let config = Config {
+            show_steps: false,
+            file_path: "messi.txt".to_string(),
         };
 
-        let mut mock_output = MockOutput {
-            expected_output: "Couldn't save file",
-        };
+        let mut mock_file_system = MockFileSystemOperations::new();
 
-        main_handler(args, &mut mock_file_system, &mut mock_output)
+        mock_file_system.expect_exists().times(1).return_const(true);
+        mock_file_system
+            .expect_read_file()
+            .times(1)
+            .returning(move |_| Ok(input.clone()));
+
+        mock_file_system
+            .expect_write_file()
+            .times(1)
+            .with(eq("out.txt"), eq(output_str))
+            .returning(|_, _| {
+                Err(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    "Couldn't save file",
+                ))
+            });
+
+        let mut mock_output = MockOutput::new();
+
+        mock_output
+            .expect_write()
+            .times(1)
+            .with(eq("Couldn't save file"))
+            .returning(|_| ());
+
+        main_handler(config, &mut mock_file_system, &mut mock_output)
     }
 }

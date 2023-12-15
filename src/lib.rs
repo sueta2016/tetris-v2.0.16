@@ -6,16 +6,22 @@ pub mod field;
 pub mod file_system;
 pub mod output;
 
+#[derive(Debug)]
+pub struct Config {
+    pub show_steps: bool,
+    pub file_path: String,
+}
+
 pub fn main_handler(
-    args: Vec<String>,
+    config: Config,
     file_system: &mut dyn FileSystemOperations,
     output: &mut dyn Output,
 ) {
-    if args.len() < 1 {
+    if config.file_path.is_empty() {
         output.write("Usage: ./main <filename>");
         return;
     }
-    let file_path = &args[0];
+    let file_path = config.file_path.as_str();
     // read file
 
     if !file_system.exists(&file_path) {

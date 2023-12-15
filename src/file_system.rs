@@ -3,6 +3,9 @@ use std::{
     io::{Read, Write},
 };
 
+use mockall::automock;
+
+#[automock]
 pub trait FileSystemOperations {
     fn read_file(&self, file_path: &str) -> Result<String, std::io::Error>;
     fn write_file(&mut self, file_path: &str, content: &str) -> Result<(), std::io::Error>;
