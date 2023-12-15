@@ -46,12 +46,20 @@ pub fn main_handler(
     };
     // play game
 
+    let mut step = 0;
+    let mut all_steps_state = format!("STEP {0}:\n{1}\n", step, field.to_string());
+
     while field.can_move() {
         field.move_figure();
+        step += 1;
+        all_steps_state += format!("STEP {0}:\n{1}\n", step, field.to_string()).as_str();
     }
 
-    // write in file
-    let final_state = field.to_string();
+    let output_str = if config.show_steps {
+        all_steps_state
+    } else {
+        field.to_string()
+    };
 
-    output.write(&final_state);
+    output.write(&output_str);
 }
