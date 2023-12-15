@@ -78,7 +78,7 @@ mod tests {
     }
 
     #[test]
-    fn should_correctly_play_game() {
+    fn should_correctly_display_only_final_state() {
         let input = r"3 4
             .p.
             pp.
@@ -94,6 +94,87 @@ pp.
 
         let config = Config {
             show_steps: false,
+            file_path: "messi.txt".to_string(),
+        };
+
+        let mut mock_file_system = MockFileSystemOperations::new();
+        let mut mock_output = MockOutput::new();
+
+        mock_file_system.expect_exists().times(1).return_const(true);
+        mock_file_system
+            .expect_read_file()
+            .times(1)
+            .returning(move |_| Ok(input.clone()));
+
+        mock_output
+            .expect_write()
+            .times(1)
+            .with(eq(output_str))
+            .returning(|_| ());
+
+        main_handler(config, &mut mock_file_system, &mut mock_output);
+    }
+
+    #[test]
+    fn should_correctly_dispalay_all_steps() {
+        let input = r"3 7
+        .p.
+        pp.
+        ...
+        ...
+        ...
+        ...
+        ###"
+        .to_string();
+
+        let output_str = r"STEP 0:
+.p.
+pp.
+...
+...
+...
+...
+###
+
+STEP 1:
+...
+.p.
+pp.
+...
+...
+...
+###
+
+STEP 2:
+...
+...
+.p.
+pp.
+...
+...
+###
+
+STEP 3:
+...
+...
+...
+.p.
+pp.
+...
+###
+
+STEP 4:
+...
+...
+...
+...
+.p.
+pp.
+###
+";
+
+        let config = Config {
+            show_steps: true,
             file_path: "messi.txt".to_string(),
         };
 
